@@ -29,9 +29,8 @@ exports.handler = async (event) => {
   try {
     const { code, refresh_token, grant_type } = JSON.parse(event.body);
 
-    
-    const CLIENT_ID = 199968;
-    const CLIENT_SECRET = f58ca8479e27142ec88a0759cbd8ae361222bafb;
+     const CLIENT_ID = process.env.STRAVA_CLIENT_ID;
+     const CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET;
 
     // OPCJA 2: Hardcoded (TYLKO DLA TESTÓW!)
     // Odkomentuj poniższe linie i wpisz swoje klucze jeśli testujesz lokalnie:
