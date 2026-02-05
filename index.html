@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RunClub - Karta Lojalnościowa Strava</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .stamp {
+            transition: all 0.3s ease;
+        }
+        .stamp-active {
+            animation: stampPop 0.5s ease;
+        }
+        @keyframes stampPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #fc4c02 0%, #ff6b35 100%);
+        }
+        .coffee-gradient {
+            background: linear-gradient(135deg, #6B4423 0%, #A0522D 100%);
+        }
+        .strava-orange {
+            background-color: #fc4c02;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ===== KONFIGURACJA STRAVA API =====
+        const STRAVA_CONFIG = {
+            clientId: '199968', // Zmień na swój Client ID
+            clubId: '1651391', // ID twojej grupy Strava
+            redirectUri: window.location.origin,
+            scope: 'read,activity:read',
+        };
+
+        // Symulacja danych (w produkcji użyj Firebase)
+        const getStorageData = (key) => {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        };
+
+        const setStorageData = (key, value) => {
+            localStorage.setItem(key, JSON.stringify(value));
+        };
+
+        // ===== STRAVA API FUNCTIONS =====
+        
+        // Funkcja do autoryzacji Strava
+        const initiateStravaLogin = () => {
+            const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CONFIG.clientId}&redirect_uri=${STRAVA_CONFIG.redirectUri}&response_type=code&scope=${STRAVA_CONFIG.scope}`;
+            window.location.href = authUrl;
+        };
+
+        // Funkcja do wymiany kodu na token (przez backend)
+        const exchangeCodeForToken = async (code) => {
+            try {
+                // URL do funkcji Netlify/Vercel
+                // Dla Netlify: /.netlify/functions/strava-token
+                // Dla Vercel: /api/strava-token
+                // Dla Firebase: https://YOUR_PROJECT.cloudfunctions.net/exchangeStravaToken
+                const backendUrl = '/.netlify/functions/strava-token'; // ← Zmień jeśli używasz innego hostingu
+                
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: code,
+                        grant_type: 'authorization_code'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    console.error('Backend error:', data);
+                    return null;
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Error exchanging code:', error);
+                return null;
+            }
+        };
+
+        // Funkcja do pobierania danych użytkownika ze Strava
+        const getStravaAthlete = async (accessToken) => {
+            try {
+                const response = await fetch('https://www.strava.com/api/v3/athlete', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching athlete:', error);
+                return null;
+            }
+        };
+
+        // Funkcja do pobierania wydarzeń klubu
+        const getClubEvents = async (accessToken, clubId) => {
+            try {
+                const response = await fetch(`https://www.strava.com/api/v3/clubs/${clubId}/group_events`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching club events:', error);
+                return [];
+            }
+        };
+
+        // Funkcja do pobierania aktywności uczestników wydarzenia
+        const getEventActivities = async (accessToken, eventId) => {
+            try {
+                const response = await fetch(`https://www.strava.com/api/v3/group_events/${eventId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching event activities:', error);
+                return null;
+            }
+        };
+
+        // ===== DEMO MODE (dla testów bez Strava API) =====
+        const DEMO_MODE = false; // Ustaw false gdy skonfigurujesz Strava API
+
+        const getDemoEvents = () => {
+            return [
+                {
+                    id: '1',
+                    title: 'Poniedziałkowy Bieg 5km',
+                    event_time: '2026-02-03T18:00:00Z',
+                    route: { distance: 5000 },
+                    joined: true,
+                    upcoming: false
+                },
+                {
+                    id: '2',
+                    title: 'Środowy Speedwork',
+                    event_time: '2026-02-05T18:00:00Z',
+                    route: { distance: 8000 },
+                    joined: false,
+                    upcoming: true
+                },
+                {
+                    id: '3',
+                    title: 'Sobotni Long Run 15km',
+                    event_time: '2026-02-08T09:00:00Z',
+                    route: { distance: 15000 },
+                    joined: false,
+                    upcoming: true
+                }
+            ];
+        };
+
+        const getDemoAthlete = () => {
+            return {
+                id: 'demo123',
+                firstname: 'Jan',
+                lastname: 'Kowalski',
+                profile: 'https://via.placeholder.com/150',
+                username: 'jankowalski'
+            };
+        };
+
+        // Inicjalizacja bazy danych
+        if (!getStorageData('users')) {
+            setStorageData('users', []);
+        }
+
+        if (!getStorageData('adminUsers')) {
+            // Lista Strava ID adminów (dodaj swoje ID)
+            setStorageData('adminUsers', ['demo123']); // Zamień na prawdziwe Strava ID
+        }
+
+        // ===== KOMPONENTY =====
+
+        // Ekran logowania
+        function LoginScreen({ onLogin }) {
+            const [loading, setLoading] = useState(false);
+
+            useEffect(() => {
+                // Sprawdź czy wracamy z OAuth callback
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                
+                if (code) {
+                    handleOAuthCallback(code);
+                }
+            }, []);
+
+            const handleOAuthCallback = async (code) => {
+                setLoading(true);
+                
+                // Wymień kod na token
+                const tokenData = await exchangeCodeForToken(code);
+                
+                if (tokenData && tokenData.access_token) {
+                    // Pobierz dane użytkownika
+                    const athlete = await getStravaAthlete(tokenData.access_token);
+                    
+                    if (athlete) {
+                        // Zapisz użytkownika
+                        const users = getStorageData('users') || [];
+                        let user = users.find(u => u.stravaId === athlete.id.toString());
+                        
+                        if (!user) {
+                            const adminUsers = getStorageData('adminUsers') || [];
+                            user = {
+                                id: Date.now().toString(),
+                                stravaId: athlete.id.toString(),
+                                name: `${athlete.firstname} ${athlete.lastname}`,
+                                username: athlete.username,
+                                profile: athlete.profile,
+                                role: adminUsers.includes(athlete.id.toString()) ? 'admin' : 'user',
+                                stamps: 0,
+                                verifiedEvents: [],
+                                claimedRewards: 0,
+                                accessToken: tokenData.access_token,
+                                refreshToken: tokenData.refresh_token,
+                                tokenExpiry: Date.now() + (tokenData.expires_in * 1000)
+                            };
+                            users.push(user);
+                        } else {
+                            // Aktualizuj token
+                            user.accessToken = tokenData.access_token;
+                            user.refreshToken = tokenData.refresh_token;
+                            user.tokenExpiry = Date.now() + (tokenData.expires_in * 1000);
+                        }
+                        
+                        setStorageData('users', users);
+                        setStorageData('currentUser', user);
+                        
+                        // Wyczyść URL
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        
+                        onLogin(user);
+                    }
+                }
+                
+                setLoading(false);
+            };
+
+            const handleDemoLogin = () => {
+                const athlete = getDemoAthlete();
+                const users = getStorageData('users') || [];
+                const adminUsers = getStorageData('adminUsers') || [];
+                
+                let user = users.find(u => u.stravaId === athlete.id);
+                
+                if (!user) {
+                    user = {
+                        id: Date.now().toString(),
+                        stravaId: athlete.id,
+                        name: `${athlete.firstname} ${athlete.lastname}`,
+                        username: athlete.username,
+                        profile: athlete.profile,
+                        role: adminUsers.includes(athlete.id) ? 'admin' : 'user',
+                        stamps: 0,
+                        verifiedEvents: [],
+                        claimedRewards: 0,
+                        accessToken: 'demo_token'
+                    };
+                    users.push(user);
+                    setStorageData('users', users);
+                }
+                
+                setStorageData('currentUser', user);
+                onLogin(user);
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen gradient-bg flex items-center justify-center">
+                        <div className="text-white text-center">
+                            <div className="text-6xl mb-4">🔄</div>
+                            <p className="text-2xl">Łączenie ze Strava...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen gradient-bg flex items-center justify-center px-4">
+                    <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 strava-orange rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <span className="text-4xl">🏃</span>
+                            </div>
+                            <h1 className="text-3xl font-bold text-gray-800 mb-2">RunClub x Strava</h1>
+                            <p className="text-gray-600">Karta lojalnościowa</p>
+                        </div>
+
+                        {DEMO_MODE ? (
+                            <div className="space-y-4">
+                                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-4 mb-4">
+                                    <p className="text-yellow-800 text-sm">
+                                        <strong>Tryb Demo</strong><br/>
+                                        Aby włączyć prawdziwą integrację ze Strava, skonfiguruj STRAVA_CONFIG w kodzie.
+                                    </p>
+                                </div>
+                                
+                                <button
+                                    onClick={handleDemoLogin}
+                                    className="w-full strava-orange text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition shadow-lg flex items-center justify-center gap-3"
+                                >
+                                    <span className="text-2xl">🏅</span> Zaloguj się (Demo)
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <button
+                                    onClick={initiateStravaLogin}
+                                    className="w-full strava-orange text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition shadow-lg flex items-center justify-center gap-3"
+                                >
+                                    <span className="text-2xl">🏅</span> Zaloguj przez Strava
+                                </button>
+
+                                <div className="bg-orange-50 rounded-2xl p-4">
+                                    <p className="text-orange-800 text-sm">
+                                        Logując się, wyrażasz zgodę na dostęp do twoich danych Strava (aktywności, wydarzenia grupy).
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mt-8 text-center">
+                            <p className="text-xs text-gray-500">
+                                Powered by Strava API<br/>
+                                🤝 BUENO x RunClub
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Komponent karty ze stemplami
+        function StampCard({ user, onClaimReward }) {
+            const stamps = user.stamps || 0;
+            const canClaim = stamps >= 10;
+
+            return (
+                <div className="bg-white rounded-3xl shadow-xl p-6 mb-6">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Twoja Karta</h2>
+                        <p className="text-gray-600">Zbierz 10 pieczątek na darmową kawę!</p>
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-4 mb-6">
+                        {[...Array(10)].map((_, index) => (
+                            <div
+                                key={index}
+                                className={`aspect-square rounded-2xl flex items-center justify-center text-4xl ${
+                                    index < stamps
+                                        ? 'coffee-gradient shadow-lg stamp-active'
+                                        : 'bg-gray-100 border-2 border-dashed border-gray-300'
+                                }`}
+                            >
+                                {index < stamps ? '☕' : ''}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-orange-50 rounded-2xl p-4 mb-4">
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-700 font-medium">Postęp:</span>
+                            <span className="text-2xl font-bold text-orange-600">{stamps}/10</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3 mt-2">
+                            <div
+                                className="strava-orange h-3 rounded-full transition-all duration-500"
+                                style={{ width: `${(stamps / 10) * 100}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    {canClaim && (
+                        <button
+                            onClick={onClaimReward}
+                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition shadow-lg"
+                        >
+                            🎁 ODBIERZ DARMOWĄ KAWĘ
+                        </button>
+                    )}
+                </div>
+            );
+        }
+
+        // Lista wydarzeń ze Strava
+        function StravaEventsList({ user }) {
+            const [events, setEvents] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadEvents();
+            }, []);
+
+            const loadEvents = async () => {
+                if (DEMO_MODE) {
+                    setEvents(getDemoEvents());
+                    setLoading(false);
+                } else {
+                    // Pobierz wydarzenia z Strava API
+                    const stravaEvents = await getClubEvents(user.accessToken, STRAVA_CONFIG.clubId);
+                    setEvents(stravaEvents);
+                    setLoading(false);
+                }
+            };
+
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('pl-PL', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+
+            const formatDistance = (meters) => {
+                if (meters >= 1000) {
+                    return `${(meters / 1000).toFixed(1)} km`;
+                }
+                return `${meters} m`;
+            };
+
+            if (loading) {
+                return (
+                    <div className="bg-white rounded-3xl shadow-xl p-6 text-center">
+                        <p className="text-gray-600">Ładowanie wydarzeń ze Strava...</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="bg-white rounded-3xl shadow-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold text-gray-800">Wydarzenia ze Strava</h2>
+                        <div className="strava-orange text-white px-3 py-1 rounded-full text-xs font-bold">
+                            LIVE
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {events.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <p className="text-4xl mb-2">📅</p>
+                                <p>Brak nadchodzących wydarzeń</p>
+                            </div>
+                        ) : (
+                            events.map(event => {
+                                const isVerified = user.verifiedEvents?.includes(event.id);
+                                const isPast = new Date(event.event_time) < new Date();
+                                
+                                return (
+                                    <div
+                                        key={event.id}
+                                        className={`border-2 rounded-2xl p-4 transition ${
+                                            isVerified 
+                                                ? 'border-green-300 bg-green-50' 
+                                                : isPast 
+                                                ? 'border-yellow-300 bg-yellow-50'
+                                                : 'border-gray-200 hover:border-orange-300'
+                                        }`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1">
+                                                <h3 className="font-bold text-gray-800">{event.title}</h3>
+                                                <p className="text-sm text-gray-600">
+                                                    📅 {formatDate(event.event_time)}
+                                                </p>
+                                                {event.route?.distance && (
+                                                    <p className="text-sm text-gray-600">
+                                                        📏 {formatDistance(event.route.distance)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {isVerified && (
+                                                <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                                    ✓ Zweryfikowano
+                                                </span>
+                                            )}
+                                            {!isVerified && isPast && (
+                                                <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                                    ⏳ Oczekuje
+                                                </span>
+                                            )}
+                                        </div>
+                                        
+                                        {!isVerified && isPast && (
+                                            <div className="mt-3 bg-yellow-100 rounded-xl p-3">
+                                                <p className="text-xs text-yellow-800">
+                                                    ℹ️ Pamiętaj: Wstaw storkę na Instagram oznaczając @runclub i @bueno, aby otrzymać pieczatkę po weryfikacji!
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    <div className="mt-6 bg-orange-50 rounded-2xl p-4">
+                        <p className="text-sm text-gray-700">
+                            <strong>Jak to działa?</strong><br/>
+                            1. Weź udział w biegu organizowanym przez grupę na Strava<br/>
+                            2. Wstaw storkę na Instagram z tagami @runclub i @bueno<br/>
+                            3. Organizator zweryfikuje i doda pieczatkę w ciągu 24h
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        // Ekran gratulacyjny
+        function CongratulationsScreen({ onBack }) {
+            return (
+                <div className="min-h-screen coffee-gradient flex items-center justify-center px-4">
+                    <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+                        <div className="text-8xl mb-6 animate-bounce">🎉</div>
+                        <h1 className="text-4xl font-bold text-gray-800 mb-4">GRATULACJE!</h1>
+                        <p className="text-xl text-gray-700 mb-8">
+                            Otrzymałeś darmową kawę w
+                        </p>
+                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-6 mb-8">
+                            <p className="text-3xl font-bold text-white">☕ BUENO</p>
+                        </div>
+                        <p className="text-lg text-gray-600 mb-8">
+                            Pokaż ten ekran pracownikowi kawiarni
+                        </p>
+                        <button
+                            onClick={onBack}
+                            className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
+                        >
+                            ✓ Odebrałem nagrodę
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // Panel admina
+        function AdminPanel({ user }) {
+            const [users, setUsers] = useState(getStorageData('users') || []);
+            const [events, setEvents] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                loadEvents();
+                loadUsers();
+            }, []);
+
+            const loadEvents = async () => {
+                if (DEMO_MODE) {
+                    setEvents(getDemoEvents());
+                    setLoading(false);
+                } else {
+                    const stravaEvents = await getClubEvents(user.accessToken, STRAVA_CONFIG.clubId);
+                    setEvents(stravaEvents);
+                    setLoading(false);
+                }
+            };
+
+            const loadUsers = () => {
+                const allUsers = getStorageData('users') || [];
+                setUsers(allUsers.filter(u => u.role !== 'admin'));
+            };
+
+            const handleVerifyEvent = (userId, eventId) => {
+                const updatedUsers = users.map(u => {
+                    if (u.id === userId) {
+                        if (!u.verifiedEvents) u.verifiedEvents = [];
+                        if (!u.verifiedEvents.includes(eventId)) {
+                            u.verifiedEvents.push(eventId);
+                            u.stamps = (u.stamps || 0) + 1;
+                        }
+                    }
+                    return u;
+                });
+                
+                const allUsers = getStorageData('users');
+                const userIndex = allUsers.findIndex(u => u.id === userId);
+                if (userIndex !== -1) {
+                    allUsers[userIndex] = updatedUsers.find(u => u.id === userId);
+                    setStorageData('users', allUsers);
+                }
+                
+                setUsers(updatedUsers);
+                alert('Wydarzenie zweryfikowane! Pieczątka dodana.');
+            };
+
+            const handleRemoveStamp = (userId) => {
+                const updatedUsers = users.map(u => {
+                    if (u.id === userId && u.stamps > 0) {
+                        u.stamps -= 1;
+                        if (u.verifiedEvents && u.verifiedEvents.length > 0) {
+                            u.verifiedEvents.pop(); // Usuń ostatnie zweryfikowane wydarzenie
+                        }
+                    }
+                    return u;
+                });
+                
+                const allUsers = getStorageData('users');
+                const userIndex = allUsers.findIndex(u => u.id === userId);
+                if (userIndex !== -1) {
+                    allUsers[userIndex] = updatedUsers.find(u => u.id === userId);
+                    setStorageData('users', allUsers);
+                }
+                
+                setUsers(updatedUsers);
+            };
+
+            const getPendingEvents = (userEvents) => {
+                return events.filter(event => {
+                    const isPast = new Date(event.event_time) < new Date();
+                    const isNotVerified = !userEvents?.includes(event.id);
+                    return isPast && isNotVerified;
+                });
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50 pb-20">
+                    <div className="gradient-bg text-white p-6 rounded-b-3xl shadow-lg mb-6">
+                        <h1 className="text-3xl font-bold mb-2">Panel Admina</h1>
+                        <p className="text-orange-100">Weryfikuj uczestników wydarzeń ze Strava</p>
+                    </div>
+
+                    <div className="max-w-4xl mx-auto px-4">
+                        <div className="bg-white rounded-3xl shadow-xl p-6 mb-6">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">
+                                Synchronizacja ze Strava
+                            </h2>
+                            <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-4">
+                                <p className="text-green-800 text-sm">
+                                    ✓ Wydarzenia są automatycznie pobierane z grupy Strava<br/>
+                                    ✓ Twoja rola: Weryfikuj uczestnictwo i dodawaj pieczątki
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl shadow-xl p-6">
+                            <h2 className="text-xl font-bold text-gray-800 mb-4">
+                                Uczestnicy do Weryfikacji
+                            </h2>
+                            
+                            <div className="space-y-4">
+                                {users.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <p className="text-4xl mb-2">👥</p>
+                                        <p>Brak zarejestrowanych użytkowników</p>
+                                    </div>
+                                ) : (
+                                    users.map(u => {
+                                        const pendingEvents = getPendingEvents(u.verifiedEvents);
+                                        
+                                        return (
+                                            <div key={u.id} className="border-2 border-gray-200 rounded-2xl p-4">
+                                                <div className="flex items-center gap-4 mb-3">
+                                                    {u.profile && (
+                                                        <img 
+                                                            src={u.profile} 
+                                                            alt={u.name}
+                                                            className="w-12 h-12 rounded-full"
+                                                        />
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-gray-800">{u.name}</h3>
+                                                        <p className="text-sm text-gray-600">@{u.username}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-2xl font-bold text-orange-600">
+                                                            {u.stamps || 0}/10
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">stempli</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                {pendingEvents.length > 0 && (
+                                                    <div className="bg-yellow-50 rounded-xl p-3 mb-3">
+                                                        <p className="text-sm font-semibold text-yellow-800 mb-2">
+                                                            Oczekujące wydarzenia do weryfikacji:
+                                                        </p>
+                                                        {pendingEvents.map(event => (
+                                                            <div 
+                                                                key={event.id} 
+                                                                className="flex justify-between items-center mb-2 bg-white rounded-lg p-2"
+                                                            >
+                                                                <div>
+                                                                    <span className="text-sm font-medium text-gray-800">
+                                                                        {event.title}
+                                                                    </span>
+                                                                    <p className="text-xs text-gray-600">
+                                                                        {new Date(event.event_time).toLocaleDateString('pl-PL')}
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleVerifyEvent(u.id, event.id)}
+                                                                    className="bg-green-500 text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-green-600"
+                                                                >
+                                                                    ✓ Weryfikuj
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        <p className="text-xs text-yellow-700 mt-2">
+                                                            ⚠️ Przed weryfikacją sprawdź czy użytkownik wstawił storkę na IG z tagami!
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {u.verifiedEvents && u.verifiedEvents.length > 0 && (
+                                                    <div className="bg-green-50 rounded-xl p-3 mb-3">
+                                                        <p className="text-sm font-semibold text-green-800">
+                                                            ✓ Zweryfikowane wydarzenia: {u.verifiedEvents.length}
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleRemoveStamp(u.id)}
+                                                    className="w-full bg-red-100 text-red-700 py-2 rounded-xl font-semibold hover:bg-red-200 transition text-sm"
+                                                    disabled={!u.stamps || u.stamps === 0}
+                                                >
+                                                    ➖ Usuń ostatnią pieczątkę
+                                                </button>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Główny widok użytkownika
+        function UserDashboard({ user, onLogout }) {
+            const [showCongrats, setShowCongrats] = useState(false);
+
+            const handleClaimReward = () => {
+                setShowCongrats(true);
+            };
+
+            const handleClaimedReward = () => {
+                const users = getStorageData('users');
+                const userIndex = users.findIndex(u => u.id === user.id);
+                if (userIndex !== -1) {
+                    users[userIndex].stamps = 0;
+                    users[userIndex].verifiedEvents = [];
+                    users[userIndex].claimedRewards = (users[userIndex].claimedRewards || 0) + 1;
+                    setStorageData('users', users);
+                    setStorageData('currentUser', users[userIndex]);
+                }
+                setShowCongrats(false);
+                window.location.reload();
+            };
+
+            if (showCongrats) {
+                return <CongratulationsScreen onBack={handleClaimedReward} />;
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50 pb-20">
+                    <div className="gradient-bg text-white p-6 rounded-b-3xl shadow-lg mb-6">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                {user.profile && (
+                                    <img 
+                                        src={user.profile} 
+                                        alt={user.name}
+                                        className="w-12 h-12 rounded-full border-2 border-white"
+                                    />
+                                )}
+                                <div>
+                                    <h1 className="text-2xl font-bold">Cześć, {user.name.split(' ')[0]}! 👋</h1>
+                                    <p className="text-orange-100 text-sm">@{user.username}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onLogout}
+                                className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-xl font-semibold transition text-sm"
+                            >
+                                Wyloguj
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="max-w-2xl mx-auto px-4 space-y-6">
+                        <StampCard user={user} onClaimReward={handleClaimReward} />
+                        <StravaEventsList user={user} />
+                    </div>
+                </div>
+            );
+        }
+
+        // Główna aplikacja
+        function App() {
+            const [currentUser, setCurrentUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const user = getStorageData('currentUser');
+                if (user) {
+                    const users = getStorageData('users');
+                    const updatedUser = users.find(u => u.id === user.id);
+                    setCurrentUser(updatedUser || user);
+                }
+                setLoading(false);
+            }, []);
+
+            const handleLogin = (user) => {
+                setCurrentUser(user);
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('currentUser');
+                setCurrentUser(null);
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen gradient-bg flex items-center justify-center">
+                        <div className="text-white text-2xl">Ładowanie...</div>
+                    </div>
+                );
+            }
+
+            if (!currentUser) {
+                return <LoginScreen onLogin={handleLogin} />;
+            }
+
+            if (currentUser.role === 'admin') {
+                return (
+                    <div>
+                        <AdminPanel user={currentUser} />
+                        <button
+                            onClick={handleLogout}
+                            className="fixed bottom-6 right-6 bg-red-500 text-white px-6 py-3 rounded-full font-semibold shadow-lg hover:bg-red-600 transition"
+                        >
+                            Wyloguj
+                        </button>
+                    </div>
+                );
+            }
+
+            return <UserDashboard user={currentUser} onLogout={handleLogout} />;
+        }
+
+        // Renderowanie aplikacji
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
