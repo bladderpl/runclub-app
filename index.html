@@ -55,7 +55,7 @@
         // ===== KONFIGURACJA =====
         const APP_CONFIG = {
             // Stały "sekret" do generowania QR kodu - ZMIEŃ NA LOSOWY STRING!
-            qrSecret: 'mojaSuperTajna!Fraza#2026$RunClub%Lodz',
+            qrSecret: 'runclub-2026-loyalty-secret-key-change-me',
             // Czas ważności QR kodu (7 dni)
             qrValidityDays: 7
         };
@@ -130,7 +130,8 @@
         }
 
         if (!getStorageData('adminUsers')) {
-            setStorageData('adminUsers', ['demo123']);
+            // Lista emaili adminów (dodaj swoje!)
+            setStorageData('adminUsers', ['admin@runclub.pl']); // ← Zmień na swój email!
         }
 
         // ===== DEMO MODE =====
@@ -146,37 +147,94 @@
 
         // ===== KOMPONENTY =====
 
-        // Ekran logowania
+        // Ekran logowania/rejestracji
         function LoginScreen({ onLogin }) {
-            const handleDemoLogin = () => {
-                const athlete = getDemoAthlete();
-                const users = getStorageData('users') || [];
-                const adminUsers = getStorageData('adminUsers') || [];
-                
-                let user = users.find(u => u.stravaId === athlete.id);
-                
-                if (!user) {
-                    user = {
-                        id: Date.now().toString(),
-                        stravaId: athlete.id,
-                        name: `${athlete.firstname} ${athlete.lastname}`,
-                        username: athlete.username,
-                        profile: athlete.profile,
-                        role: adminUsers.includes(athlete.id) ? 'admin' : 'user',
-                        stamps: 0,
-                        scannedWeeks: [], // Lista zeskanowanych tygodni
-                        claimedRewards: 0
-                    };
-                    users.push(user);
-                    setStorageData('users', users);
+            const [isLogin, setIsLogin] = useState(true);
+            const [formData, setFormData] = useState({
+                firstName: '',
+                lastName: '',
+                email: '',
+                password: ''
+            });
+            const [error, setError] = useState('');
+
+            const handleInputChange = (e) => {
+                setFormData({
+                    ...formData,
+                    [e.target.name]: e.target.value
+                });
+                setError('');
+            };
+
+            const handleRegister = () => {
+                // Walidacja
+                if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+                    setError('Wszystkie pola są wymagane!');
+                    return;
                 }
+
+                if (!formData.email.includes('@')) {
+                    setError('Nieprawidłowy adres email!');
+                    return;
+                }
+
+                if (formData.password.length < 6) {
+                    setError('Hasło musi mieć minimum 6 znaków!');
+                    return;
+                }
+
+                const users = getStorageData('users') || [];
                 
+                // Sprawdź czy email już istnieje
+                if (users.find(u => u.email === formData.email)) {
+                    setError('Ten email jest już zarejestrowany!');
+                    return;
+                }
+
+                // Utwórz nowego użytkownika
+                const adminUsers = getStorageData('adminUsers') || [];
+                const newUser = {
+                    id: Date.now().toString(),
+                    name: `${formData.firstName} ${formData.lastName}`,
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    email: formData.email,
+                    password: formData.password, // W produkcji: hashuj hasło!
+                    role: adminUsers.includes(formData.email) ? 'admin' : 'user',
+                    stamps: 0,
+                    scannedWeeks: [],
+                    claimedRewards: 0,
+                    createdAt: new Date().toISOString()
+                };
+
+                users.push(newUser);
+                setStorageData('users', users);
+                setStorageData('currentUser', newUser);
+                
+                onLogin(newUser);
+            };
+
+            const handleLogin = () => {
+                // Walidacja
+                if (!formData.email || !formData.password) {
+                    setError('Email i hasło są wymagane!');
+                    return;
+                }
+
+                const users = getStorageData('users') || [];
+                const user = users.find(u => u.email === formData.email && u.password === formData.password);
+
+                if (!user) {
+                    setError('Nieprawidłowy email lub hasło!');
+                    return;
+                }
+
                 setStorageData('currentUser', user);
                 onLogin(user);
             };
 
             return (
-                <div className="min-h-screen gradient-bg flex items-center justify-center px-4">
+                <div className="min-h-screen gradient-bg flex items-center justify-center px-4 py-8">
                     <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
                         <div className="text-center mb-8">
                             <div className="w-20 h-20 strava-orange rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -186,12 +244,92 @@
                             <p className="text-gray-600">Skanuj QR, zbieraj pieczątki!</p>
                         </div>
 
-                        <button
-                            onClick={handleDemoLogin}
-                            className="w-full strava-orange text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition shadow-lg flex items-center justify-center gap-3"
-                        >
-                            <span className="text-2xl">🏅</span> Zaloguj się (Demo)
-                        </button>
+                        {/* Przełącznik Login/Rejestracja */}
+                        <div className="flex gap-2 mb-6">
+                            <button
+                                onClick={() => {
+                                    setIsLogin(true);
+                                    setError('');
+                                    setFormData({ firstName: '', lastName: '', email: '', password: '' });
+                                }}
+                                className={`flex-1 py-3 rounded-xl font-semibold transition ${
+                                    isLogin
+                                        ? 'strava-orange text-white'
+                                        : 'bg-gray-100 text-gray-700'
+                                }`}
+                            >
+                                Logowanie
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsLogin(false);
+                                    setError('');
+                                    setFormData({ firstName: '', lastName: '', email: '', password: '' });
+                                }}
+                                className={`flex-1 py-3 rounded-xl font-semibold transition ${
+                                    !isLogin
+                                        ? 'strava-orange text-white'
+                                        : 'bg-gray-100 text-gray-700'
+                                }`}
+                            >
+                                Rejestracja
+                            </button>
+                        </div>
+
+                        {/* Formularz */}
+                        <div className="space-y-4">
+                            {!isLogin && (
+                                <>
+                                    <input
+                                        type="text"
+                                        name="firstName"
+                                        placeholder="Imię *"
+                                        value={formData.firstName}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                                    />
+                                    <input
+                                        type="text"
+                                        name="lastName"
+                                        placeholder="Nazwisko *"
+                                        value={formData.lastName}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                                    />
+                                </>
+                            )}
+                            
+                            <input
+                                type="email"
+                                name="email"
+                                placeholder="Email *"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                            />
+                            
+                            <input
+                                type="password"
+                                name="password"
+                                placeholder="Hasło *"
+                                value={formData.password}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                            />
+
+                            {error && (
+                                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3">
+                                    <p className="text-red-700 text-sm text-center">{error}</p>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={isLogin ? handleLogin : handleRegister}
+                                className="w-full strava-orange text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition shadow-lg"
+                            >
+                                {isLogin ? '🔓 Zaloguj się' : '✨ Zarejestruj się'}
+                            </button>
+                        </div>
 
                         <div className="mt-8 text-center">
                             <p className="text-xs text-gray-500">
@@ -431,6 +569,7 @@
             const [users, setUsers] = useState(getStorageData('users') || []);
             const [qrCodeUrl, setQrCodeUrl] = useState('');
             const [showQR, setShowQR] = useState(false);
+            const [qrError, setQrError] = useState('');
 
             useEffect(() => {
                 loadUsers();
@@ -442,17 +581,33 @@
             };
 
             const generateQRCode = async () => {
-                const qrData = generateQRData();
-                const url = await QRCode.toDataURL(qrData, {
-                    width: 500,
-                    margin: 2,
-                    color: {
-                        dark: '#fc4c02',
-                        light: '#ffffff'
+                setQrError('');
+                
+                try {
+                    // Sprawdź czy QRCode jest dostępny
+                    if (typeof QRCode === 'undefined') {
+                        setQrError('Biblioteka QR Code nie jest załadowana. Odśwież stronę.');
+                        return;
                     }
-                });
-                setQrCodeUrl(url);
-                setShowQR(true);
+
+                    const qrData = generateQRData();
+                    
+                    // Generuj QR kod
+                    const url = await QRCode.toDataURL(qrData, {
+                        width: 500,
+                        margin: 2,
+                        color: {
+                            dark: '#fc4c02',
+                            light: '#ffffff'
+                        }
+                    });
+                    
+                    setQrCodeUrl(url);
+                    setShowQR(true);
+                } catch (error) {
+                    console.error('Błąd generowania QR:', error);
+                    setQrError('Błąd podczas generowania kodu QR. Spróbuj ponownie.');
+                }
             };
 
             const handleRemoveStamp = (userId) => {
@@ -501,12 +656,20 @@
                             </div>
 
                             {!showQR ? (
-                                <button
-                                    onClick={generateQRCode}
-                                    className="w-full strava-orange text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
-                                >
-                                    📱 Wygeneruj Kod QR
-                                </button>
+                                <div>
+                                    <button
+                                        onClick={generateQRCode}
+                                        className="w-full strava-orange text-white py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition"
+                                    >
+                                        📱 Wygeneruj Kod QR
+                                    </button>
+                                    
+                                    {qrError && (
+                                        <div className="mt-4 bg-red-50 border-2 border-red-200 rounded-2xl p-4">
+                                            <p className="text-red-800 text-sm text-center">{qrError}</p>
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="text-center">
                                     <div className="bg-white p-4 rounded-2xl inline-block mb-4">
@@ -550,16 +713,12 @@
                                     users.map(u => (
                                         <div key={u.id} className="border-2 border-gray-200 rounded-2xl p-4">
                                             <div className="flex items-center gap-4 mb-3">
-                                                {u.profile && (
-                                                    <img 
-                                                        src={u.profile} 
-                                                        alt={u.name}
-                                                        className="w-12 h-12 rounded-full"
-                                                    />
-                                                )}
+                                                <div className="w-12 h-12 strava-orange rounded-full flex items-center justify-center text-white font-bold text-xl">
+                                                    {u.firstName ? u.firstName[0] : u.name[0]}
+                                                </div>
                                                 <div className="flex-1">
                                                     <h3 className="font-bold text-gray-800">{u.name}</h3>
-                                                    <p className="text-sm text-gray-600">@{u.username}</p>
+                                                    <p className="text-sm text-gray-600">{u.email}</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-2xl font-bold text-orange-600">
@@ -643,16 +802,12 @@
                     <div className="gradient-bg text-white p-6 rounded-b-3xl shadow-lg mb-6">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-3">
-                                {currentUser.profile && (
-                                    <img 
-                                        src={currentUser.profile} 
-                                        alt={currentUser.name}
-                                        className="w-12 h-12 rounded-full border-2 border-white"
-                                    />
-                                )}
+                                <div className="w-12 h-12 strava-orange rounded-full flex items-center justify-center text-white font-bold text-xl">
+                                    {currentUser.firstName ? currentUser.firstName[0] : currentUser.name[0]}
+                                </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold">Cześć, {currentUser.name.split(' ')[0]}! 👋</h1>
-                                    <p className="text-orange-100 text-sm">@{currentUser.username}</p>
+                                    <h1 className="text-2xl font-bold">Cześć, {currentUser.firstName || currentUser.name.split(' ')[0]}! 👋</h1>
+                                    <p className="text-orange-100 text-sm">{currentUser.email}</p>
                                 </div>
                             </div>
                             <button
