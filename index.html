@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RunClub - Karta Lojalnościowa</title>
+    <title>MVMNT.LAB - Karta Lojalnościowa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
@@ -56,7 +56,7 @@
         // ===== KONFIGURACJA =====
         const APP_CONFIG = {
             // Stały "sekret" do generowania QR kodu - ZMIEŃ NA LOSOWY STRING!
-            qrSecret: 'runclub-2026-loyalty-secret-key-change-me',
+            qrSecret: 'mvmnt123',
             // Czas ważności QR kodu (7 dni)
             qrValidityDays: 7,
             // Wersja danych (do migracji)
@@ -236,11 +236,20 @@
                 <div className="min-h-screen gradient-bg flex items-center justify-center px-4 py-8">
                     <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
                         <div className="text-center mb-8">
-                            <div className="w-20 h-20 runclub-orange rounded-full mx-auto mb-4 flex items-center justify-center">
-                                <span className="text-4xl">🏃</span>
+                            <div className="w-full max-w-xs mx-auto mb-4 px-4">
+                                <svg viewBox="0 0 595.28 220.44" className="w-full h-auto">
+                                    <path fill="#ca2727" d="M157.81,90.95h-25.89s0-28.1,0-28.1l-14.44,28.1h-22.63s-14.35-28.1-14.35-28.1v28.1s-25.89,0-25.89,0v-46.39c13.12,0,26.15,0,39.09,0l12.5,24.36,12.41-24.36c13.12,0,26.15,0,39.18,0v46.39Z"/>
+                                    <path fill="#ca2727" d="M187.73,44.56l16.47,33.7,16.38-33.7h27.91s-27.74,46.39-27.74,46.39c-11.09,0-22.1,0-33.11,0l-27.82-46.39h27.91Z"/>
+                                    <path fill="#ca2727" d="M353.68,90.95h-25.89s0-28.1,0-28.1l-14.44,28.1h-22.63s-14.35-28.1-14.35-28.1v28.1s-25.89,0-25.89,0v-46.39c13.12,0,26.15,0,39.09,0l12.5,24.36,12.41-24.36c13.12,0,26.15,0,39.18,0v46.39Z"/>
+                                    <path fill="#ca2727" d="M324.66,44.56h29.06s32.31,23.74,32.31,23.74v-23.74s25.89,0,25.89,0v46.39c-9.07,0-18.05,0-27.03,0l-34.43-27.01"/>
+                                    <path fill="#ca2727" d="M541.15,59.77h-70.43s0,31.18,0,31.18h-25.8s0-31.18,0-31.18c-13.21.07-25,.07-30.99.07v-15.28c29.23,0,97.91,0,127.22,0v15.21Z"/>
+                                    <path fill="#ca2727" d="M541.15,90.95h-17.79s0-14.46,0-14.46h17.79s0,14.46,0,14.46Z"/>
+                                    <path fill="#ca2727" d="M176.12,109.59l-44.06,64.33H54.78s44.06-64.33,44.06-64.33h77.28Z"/>
+                                    <path fill="#ca2727" d="M240.32,141.65h-70.4s2.43-3.55,2.43-3.55c2.81-4.1,7.17-7.26,13.09-9.48,5.92-2.22,16.09-4.19,30.51-5.89,14.42-1.7,32.22-2.56,53.39-2.56,25.39,0,43.86.97,55.42,2.89,11.56,1.93,17.67,4.3,18.35,7.11.68,2.81-1.98,8.59-7.98,17.35l-18.22,26.59h-73s3.23-4.72,3.23-4.72c-5.88,1.89-12.77,3.31-20.66,4.26-7.89.95-16.86,1.42-26.89,1.42-13.13,0-24.63-.79-34.5-2.38-9.88-1.58-12.98-5.05-9.32-10.4l2.98-4.35c2.72-3.97,7.48-6.67,14.28-8.11,6.81-1.44,22.38-3.11,46.73-5.03,26.06-2.08,40.21-3.47,42.44-4.19,2.22-.72,4.1-2.18,5.61-4.39,1.9-2.77,2.17-4.57.83-5.41-1.35-.84-4.25-1.26-8.71-1.26-5.08,0-8.48.35-10.2,1.06-1.72.71-3.59,2.54-5.62,5.49l-3.8,5.55ZM259.12,148.91c-13.31,1.89-21.36,3.47-24.15,4.75-2.8,1.28-5.01,3.11-6.66,5.51-1.88,2.74-2.26,4.51-1.13,5.31,1.13.8,4.16,1.2,9.12,1.2,4.71,0,7.98-.31,9.84-.94,1.85-.63,3.69-2.27,5.51-4.93l7.47-10.9Z"/>
+                                    <path fill="#ca2727" d="M452.71,108.85l-10.58,15.45c7.26-1.56,14.96-2.73,23.11-3.49,8.14-.77,16.67-1.15,25.59-1.15,10.28,0,18.95.35,26.03,1.05,7.08.7,12.16,1.68,15.26,2.94,3.1,1.26,4.63,2.5,4.61,3.71-.02,1.21-1.39,3.79-4.1,7.74l-16.51,24.1c-2.69,3.92-5.89,6.85-9.63,8.77-3.73,1.92-10.54,3.59-20.42,5-9.88,1.41-20.96,2.12-33.22,2.12-8.79,0-16.71-.42-23.76-1.25-7.05-.83-13.15-2.09-18.33-3.76l-7.6,4.04h-70.22s44.7-65.26,44.7-65.26h75.05ZM457.08,135.81c1.9-2.77,2.33-4.57,1.3-5.42-1.03-.85-3.9-1.27-8.6-1.27-4.58,0-7.81.37-9.68,1.11-1.87.74-3.82,2.6-5.87,5.58l-15.79,23.06c-1.97,2.88-2.45,4.72-1.46,5.52,1,.81,3.78,1.21,8.37,1.21,4.71,0,8.06-.42,10.05-1.25,1.99-.83,4.08-2.83,6.25-6.01l15.43-22.53Z"/>
+                                </svg>
                             </div>
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">RunClub</h1>
-                            <p className="text-gray-600">Skanuj QR, zbieraj pieczątki!</p>
+                            <p className="text-gray-600">Zbieraj pieczątki i otrzymuj nagrody!</p>
                         </div>
 
                         {/* Przełącznik Login/Rejestracja */}
@@ -343,7 +352,7 @@
 
                         <div className="mt-8 text-center">
                             <p className="text-xs text-gray-500">
-                                🤝 BUENO x RunClub
+                                🤝 mvmnt.lab x Bueno
                             </p>
                         </div>
                     </div>
@@ -905,10 +914,233 @@
             );
         }
 
+        // Panel ustawień użytkownika
+        function SettingsPanel({ user, onClose, onUpdate }) {
+            const [newEmail, setNewEmail] = useState(user.email);
+            const [currentPassword, setCurrentPassword] = useState('');
+            const [newPassword, setNewPassword] = useState('');
+            const [confirmPassword, setConfirmPassword] = useState('');
+            const [message, setMessage] = useState('');
+            const [error, setError] = useState('');
+
+            const handleEmailChange = () => {
+                if (!newEmail || !newEmail.includes('@')) {
+                    setError('Podaj prawidłowy adres email!');
+                    return;
+                }
+
+                if (!currentPassword) {
+                    setError('Wpisz obecne hasło aby potwierdzić zmianę!');
+                    return;
+                }
+
+                const users = getStorageData('users');
+                const userIndex = users.findIndex(u => u.id === user.id);
+                
+                if (userIndex !== -1) {
+                    if (users[userIndex].password !== currentPassword) {
+                        setError('Nieprawidłowe hasło!');
+                        return;
+                    }
+
+                    // Sprawdź czy email nie jest już zajęty
+                    if (users.find(u => u.email === newEmail && u.id !== user.id)) {
+                        setError('Ten email jest już zajęty!');
+                        return;
+                    }
+
+                    users[userIndex].email = newEmail;
+                    setStorageData('users', users);
+                    setStorageData('currentUser', users[userIndex]);
+                    
+                    setMessage('✅ Email zmieniony!');
+                    setError('');
+                    setCurrentPassword('');
+                    onUpdate(users[userIndex]);
+                }
+            };
+
+            const handlePasswordChange = () => {
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    setError('Wypełnij wszystkie pola!');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    setError('Nowe hasło musi mieć minimum 6 znaków!');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    setError('Nowe hasła nie są identyczne!');
+                    return;
+                }
+
+                const users = getStorageData('users');
+                const userIndex = users.findIndex(u => u.id === user.id);
+                
+                if (userIndex !== -1) {
+                    if (users[userIndex].password !== currentPassword) {
+                        setError('Nieprawidłowe obecne hasło!');
+                        return;
+                    }
+
+                    users[userIndex].password = newPassword;
+                    setStorageData('users', users);
+                    setStorageData('currentUser', users[userIndex]);
+                    
+                    setMessage('✅ Hasło zmienione!');
+                    setError('');
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    onUpdate(users[userIndex]);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center px-4 z-50">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="gradient-bg text-white p-6 rounded-t-3xl">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-2xl font-bold">⚙️ Ustawienia</h2>
+                                <button
+                                    onClick={onClose}
+                                    className="bg-white bg-opacity-20 hover:bg-opacity-30 w-10 h-10 rounded-full font-bold transition"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* Zmiana Email */}
+                            <div>
+                                <h3 className="font-bold text-gray-800 mb-3">📧 Zmiana Email</h3>
+                                <div className="space-y-3">
+                                    <input
+                                        type="email"
+                                        value={newEmail}
+                                        onChange={(e) => {
+                                            setNewEmail(e.target.value);
+                                            setMessage('');
+                                            setError('');
+                                        }}
+                                        placeholder="Nowy email"
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                                    />
+                                    <input
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => {
+                                            setCurrentPassword(e.target.value);
+                                            setMessage('');
+                                            setError('');
+                                        }}
+                                        placeholder="Obecne hasło"
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                                    />
+                                    <button
+                                        onClick={handleEmailChange}
+                                        className="w-full runclub-orange text-white py-3 rounded-xl font-bold hover:opacity-90 transition"
+                                    >
+                                        Zmień Email
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Zmiana Hasła */}
+                            <div>
+                                <h3 className="font-bold text-gray-800 mb-3">🔐 Zmiana Hasła</h3>
+                                <div className="space-y-3">
+                                    <input
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => {
+                                            setCurrentPassword(e.target.value);
+                                            setMessage('');
+                                            setError('');
+                                        }}
+                                        placeholder="Obecne hasło"
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                                    />
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => {
+                                            setNewPassword(e.target.value);
+                                            setMessage('');
+                                            setError('');
+                                        }}
+                                        placeholder="Nowe hasło (min. 6 znaków)"
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                                    />
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => {
+                                            setConfirmPassword(e.target.value);
+                                            setMessage('');
+                                            setError('');
+                                        }}
+                                        placeholder="Powtórz nowe hasło"
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 outline-none"
+                                    />
+                                    <button
+                                        onClick={handlePasswordChange}
+                                        className="w-full runclub-orange text-white py-3 rounded-xl font-bold hover:opacity-90 transition"
+                                    >
+                                        Zmień Hasło
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Linki */}
+                            <div>
+                                <h3 className="font-bold text-gray-800 mb-3">🔗 Linki</h3>
+                                <div className="space-y-2">
+                                    <a
+                                        href="https://www.instagram.com/mvmntlab.pl/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2"
+                                    >
+                                        📸 Instagram
+                                    </a>
+                                    <a
+                                        href="https://mvmnt.pl"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full bg-gray-800 text-white py-3 rounded-xl font-bold hover:bg-gray-700 transition flex items-center justify-center gap-2"
+                                    >
+                                        🛍️ Sklep mvmnt.pl
+                                    </a>
+                                </div>
+                            </div>
+
+                            {message && (
+                                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-3">
+                                    <p className="text-green-700 text-sm text-center font-semibold">{message}</p>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3">
+                                    <p className="text-red-700 text-sm text-center font-semibold">{error}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         // Główny widok użytkownika
         function UserDashboard({ user, onLogout }) {
             const [showCongrats, setShowCongrats] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
             const [refreshKey, setRefreshKey] = useState(0);
+            const [currentUser, setCurrentUser] = useState(user);
 
             const handleClaimReward = () => {
                 setShowCongrats(true);
@@ -932,21 +1164,29 @@
                 const users = getStorageData('users');
                 const updatedUser = users.find(u => u.id === user.id);
                 setStorageData('currentUser', updatedUser);
+                setCurrentUser(updatedUser);
                 setRefreshKey(prev => prev + 1);
                 
                 alert('🎉 Pieczątka dodana!');
             };
 
+            const handleUserUpdate = (updatedUser) => {
+                setCurrentUser(updatedUser);
+                setRefreshKey(prev => prev + 1);
+            };
+
+            if (showSettings) {
+                return <SettingsPanel user={currentUser} onClose={() => setShowSettings(false)} onUpdate={handleUserUpdate} />;
+            }
+
             if (showCongrats) {
                 return <CongratulationsScreen onBack={handleClaimedReward} />;
             }
 
-            const currentUser = getStorageData('currentUser');
-
             return (
                 <div className="min-h-screen bg-gray-50 pb-20" key={refreshKey}>
                     <div className="gradient-bg text-white p-6 rounded-b-3xl shadow-lg mb-6">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 runclub-orange rounded-full flex items-center justify-center text-white font-bold text-xl border-2 border-white">
                                     {currentUser.firstName ? currentUser.firstName[0] : currentUser.name[0]}
@@ -963,6 +1203,32 @@
                                 Wyloguj
                             </button>
                         </div>
+                        
+                        {/* Przyciski nawigacyjne */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <button
+                                onClick={() => setShowSettings(true)}
+                                className="bg-white bg-opacity-20 hover:bg-opacity-30 py-2 rounded-xl font-semibold transition text-sm flex items-center justify-center gap-1"
+                            >
+                                ⚙️ Ustawienia
+                            </button>
+                            <a
+                                href="https://www.instagram.com/mvmntlab.pl/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-white bg-opacity-20 hover:bg-opacity-30 py-2 rounded-xl font-semibold transition text-sm flex items-center justify-center gap-1"
+                            >
+                                📸 Instagram
+                            </a>
+                            <a
+                                href="https://mvmnt.pl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-white bg-opacity-20 hover:bg-opacity-30 py-2 rounded-xl font-semibold transition text-sm flex items-center justify-center gap-1"
+                            >
+                                🛍️ Sklep
+                            </a>
+                        </div>
                     </div>
 
                     <div className="max-w-2xl mx-auto px-4 space-y-6">
@@ -972,10 +1238,11 @@
                         <div className="bg-white rounded-3xl shadow-xl p-6">
                             <h3 className="font-bold text-gray-800 mb-3">📖 Jak to działa?</h3>
                             <ol className="space-y-2 text-gray-700 text-sm">
-                                <li>1️⃣ Weź udział w biegu RunClub</li>
-                                <li>2️⃣ Po biegu idź do kawiarni BUENO</li>
-                                <li>3️⃣ Znajdź kod QR i zeskanuj go w aplikacji</li>
-                                <li>4️⃣ Zbierz 10 pieczątek = darmowa kawa! ☕</li>
+                                <li>1️⃣ Weź udział w labowaniu z MVMNT.</li>
+                                <li>2️⃣ Oznacz mvmnt.lab i bueno na relacji Instagram</li>
+                                <li>3️⃣ Po wydarzeniu idź do kawiarni BUENO</li>
+                                <li>4️⃣ Znajdź kod QR i zeskanuj go w aplikacji</li>
+                                <li>5️⃣ Zbierz 10 pieczątek i otrzymaj prezent od Bueno ☕</li>
                             </ol>
                         </div>
                     </div>
